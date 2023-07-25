@@ -16,10 +16,10 @@ type KustoTargetOptions struct {
 
 // FileIngestOptions provides the configuration for ingesting from local file.
 type FileIngestOptions struct {
-	SourceFile   string `arg:"" required:"" help:"The source file to ingest."`
-	MappingsFile string `optional:"" help:"The mappings file to use. Optional"`
-	Format       string `optional:"" enum:"json,csv" default:"json" help:"The format of the source file. Default is csv."`
+	SourceFile   string `arg:"" type:"existingfile" required:"" help:"The source file to ingest."`
+	MappingsFile string `optional:"" type:"existingfile" help:"The mappings file to use. Optional"`
+	Format       DataFormatString `optional:"" enum:"json,csv" default:"json" help:"The format of the source file. Default is csv."`
 
-	AuthOptions        `prefix:"auth-"`
-	KustoTargetOptions `prefix:"kusto-"`
+	Auth AuthOptions        `embed:"" prefix:"auth-"`
+	KustoTarget KustoTargetOptions `embed:"" prefix:"kusto-"`
 }
