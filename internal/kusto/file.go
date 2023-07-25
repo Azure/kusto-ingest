@@ -12,15 +12,24 @@ import (
 func (f FileIngestOptions) FileOptions() ([]ingest.FileOption, error) {
 	var rv []ingest.FileOption
 
-	ingestDataFormat := f.Format.ToIngestDataFormat()
+	fileFormat := f.Format.ToIngestDataFormat()
 	if f.MappingsFile != "" {
 		mappingsContent, err := os.ReadFile(f.MappingsFile)
 		if err != nil {
 			return nil, fmt.Errorf("read mappings file %q: %w", f.MappingsFile, err)
 		}
+
+		// when input format is multijson, we need to set the mapping format to json
+		// refs:
+		// - https://learn.microsoft.com/en-us/azure/data-explorer/ingestion-supported-formats
+		// - https://github.com/Azure/azure-kusto-go/blob/2ff486159db0752e13504a58d67fc298e7b61691/kusto/ingest/internal/properties/properties.go#L55
+		ingestDataFormat := fileFormat
+		if ingestDataFormat == ingest.MultiJSON {
+			ingestDataFormat = ingest.JSON
+		}
 		rv = append(rv, ingest.IngestionMapping(mappingsContent, ingestDataFormat))
 	} else {
-		rv = append(rv, ingest.FileFormat(ingestDataFormat))
+		rv = append(rv, ingest.FileFormat(fileFormat))
 	}
 
 

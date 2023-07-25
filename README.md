@@ -5,7 +5,7 @@ Ingest logs data to Kusto with `github.com/Azure/azure-kusto-go`.
 ## Usage - Ingest file
 
 ```
-$ kusto-ingest file ./testdata/logs.json \
+$ kusto-ingest file ./testdata/logs.multijson \
     --mappings-file=./testdata/logs.mapping.json \
     --auth-tenant-id="<tenant-id>" \
     --auth-client-id="<client-id>" \
@@ -18,7 +18,8 @@ $ kusto-ingest file ./testdata/logs.json \
 ## TODO
 
 - [ ] More authentications support
-- [ ] More file format support
+- [ ] More file formats support
+- [ ] CLI piping
 
 ## Contributing
 
