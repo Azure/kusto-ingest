@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/log"
 )
 
+// Provider provides CLI settings.
 type Provider interface {
 	// Context - creates a context for the command to run in.
 	Context() (context.Context, context.CancelFunc)
@@ -20,6 +21,7 @@ type providerImpl struct {
 	logger *log.Logger
 }
 
+// Default creates a default CLI provider instance.
 func Default(debug bool) *providerImpl {
 	logLevel := log.InfoLevel
 	if debug {

@@ -23,4 +23,7 @@ type FileIngestOptions struct {
 
 	Auth AuthOptions        `embed:"" prefix:"auth-"`
 	KustoTarget KustoTargetOptions `embed:"" prefix:"kusto-"`
+
+	// for unit test
+	ingestorBuildSettings `kong:"-"`
 }

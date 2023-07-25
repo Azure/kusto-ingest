@@ -45,7 +45,7 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 		return err
 	}
 
-	ingestor, err := createIngestor(f.KustoTarget, f.Auth, ingestorBuildSettings{})
+	ingestor, err := f.ingestorBuildSettings.createIngestor(f.KustoTarget, f.Auth)
 	if err != nil {
 		return fmt.Errorf("create Kusto ingestor: %w", err)
 	}

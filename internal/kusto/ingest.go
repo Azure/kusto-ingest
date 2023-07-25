@@ -17,8 +17,12 @@ func createKustoClient(
 
 type ingestorBuildSettings struct {
 	// CreateQueryClient - optional callback for creating the ingest query client.
-	// Defaults to creating a client via kusto.New
+	// Defaults to creating a client via kusto.New.
 	CreateQueryClient func(target KustoTargetOptions, auth AuthOptions) (ingest.QueryClient, error)
+
+	// CreateIngestor - optional callback for creating the Kusto ingestor.
+	// Defaults to creating an instance via ingest.New.
+	CreateIngestor func(target KustoTargetOptions, auth AuthOptions) (ingest.Ingestor, error)
 }
 
 func (s ingestorBuildSettings) createQueryClient(
@@ -36,12 +40,15 @@ func (s ingestorBuildSettings) createQueryClient(
 	return client, nil
 }
 
-func createIngestor(
+func (s ingestorBuildSettings) createIngestor(
 	target KustoTargetOptions,
 	auth AuthOptions,
-	settings ingestorBuildSettings, // reserved for unit testing
 ) (ingest.Ingestor, error) {
-	queryClient, err := settings.createQueryClient(target, auth)
+	if s.CreateIngestor != nil {
+		return s.CreateIngestor(target, auth)
+	}
+
+	queryClient, err := s.createQueryClient(target, auth)
 	if err != nil {
 		return nil, err
 	}
