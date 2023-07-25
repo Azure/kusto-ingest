@@ -1,0 +1,10 @@
+[
+    {
+        "PreciseTimestamp": "2023-07-25T20:07:00Z",
+        "msg": "hello, world"
+    },
+    {
+        "PreciseTimestamp": "2023-07-25T21:07:00Z",
+        "msg": "hello, world 2"
+    }
+]

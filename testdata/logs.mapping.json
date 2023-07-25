@@ -1,0 +1,16 @@
+[
+    {
+        "Column": "PreciseTimestamp",
+        "DataType": "datetime",
+        "Properties": {
+            "Path": "$.PreciseTimestamp"
+        }
+    },
+    {
+        "Column": "msg",
+        "DataType": "string",
+        "Properties": {
+            "Path": "$.msg"
+        }
+    }
+]

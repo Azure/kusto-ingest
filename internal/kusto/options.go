@@ -19,7 +19,7 @@ type KustoTargetOptions struct {
 type FileIngestOptions struct {
 	SourceFile   string `arg:"" type:"existingfile" required:"" help:"The source file to ingest."`
 	MappingsFile string `optional:"" type:"existingfile" help:"The mappings file to use. Optional"`
-	Format       DataFormatString `optional:"" enum:"json,csv" default:"json" help:"The format of the source file. Default is csv."`
+	Format       DataFormatString `optional:"" enum:"json,csv" default:"json" help:"The format of the source file. Default is json."`
 
 	Auth AuthOptions        `embed:"" prefix:"auth-"`
 	KustoTarget KustoTargetOptions `embed:"" prefix:"kusto-"`
