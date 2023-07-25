@@ -60,7 +60,7 @@ func Test_FileIngestOptions_FileOptions(t *testing.T) {
 }
 
 func Test_FileIngestOptions_Run_IngestFile_NoMapping(t *testing.T) {
-	sourceFile := writeToTestFile(t, "logs.json", []byte("[]"))
+	sourceFile := writeToTestFile(t, "logs.json", []byte("{}"))
 	
 	cli := testingcli.New()
 
@@ -75,7 +75,7 @@ func Test_FileIngestOptions_Run_IngestFile_NoMapping(t *testing.T) {
 
 	opts := FileIngestOptions{
 		SourceFile: sourceFile,
-		Format: "json",
+		Format: "multijson",
 		Auth: newTestAuth(),
 		KustoTarget: newTestKustoTarget(),
 
@@ -91,7 +91,7 @@ func Test_FileIngestOptions_Run_IngestFile_NoMapping(t *testing.T) {
 }
 
 func Test_FileIngestOptions_Run_IngestFile_WithMapping(t *testing.T) {
-	sourceFile := writeToTestFile(t, "logs.json", []byte("[]"))
+	sourceFile := writeToTestFile(t, "logs.json", []byte("{}"))
 	sourceFileMapping := writeToTestFile(t, "logs-mapping.json", []byte("[]"))
 	
 	cli := testingcli.New()
@@ -107,7 +107,7 @@ func Test_FileIngestOptions_Run_IngestFile_WithMapping(t *testing.T) {
 
 	opts := FileIngestOptions{
 		SourceFile: sourceFile,
-		Format: "json",
+		Format: "multijson",
 		MappingsFile: sourceFileMapping,
 		Auth: newTestAuth(),
 		KustoTarget: newTestKustoTarget(),

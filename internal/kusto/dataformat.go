@@ -10,6 +10,7 @@ import (
 // TODO: discuss with upstream to let ingest.DataFormat implement UnmarshalJSON.
 var supportedIngestDataFormatsByString = func() map[DataFormatString]ingest.DataFormat {
 	ss := []ingest.DataFormat{
+		ingest.MultiJSON,
 		ingest.JSON,
 		ingest.CSV,
 	}
