@@ -18,7 +18,8 @@ $ kusto-ingest file ./testdata/logs.multijson \
 ## TODO
 
 - [ ] More authentications support
-- [ ] More file format support
+- [ ] More file formats support
+- [ ] CLI piping
 
 ## Contributing
 
