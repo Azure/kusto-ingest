@@ -3,7 +3,7 @@ module github.com/Azure/kusto-ingest
 go 1.20
 
 require (
-	github.com/Azure/azure-kusto-go v0.14.2
+	github.com/Azure/azure-kusto-go v0.15.0
 	github.com/alecthomas/kong v0.8.1
 	github.com/charmbracelet/log v0.3.1
 	github.com/stretchr/testify v1.8.4
