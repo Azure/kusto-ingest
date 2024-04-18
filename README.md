@@ -7,17 +7,39 @@ Ingest logs data to Kusto with `github.com/Azure/azure-kusto-go`.
 ```
 $ kusto-ingest file ./testdata/logs.multijson \
     --mappings-file=./testdata/logs.mapping.json \
-    --auth-tenant-id="<tenant-id>" \
-    --auth-client-id="<client-id>" \
-    --auth-client-secret="<client-secret>" \
+    --auth-azcli \
     --kusto-endpoint="https://test.kusto.windows.net" \
     --kusto-database="Test" \
     --kusto-table="TestTable"
 ```
 
+### Authentication - AZCLI
+
+`kusto-ingest` supports using azcli for authentication. This option is helpful for OIDC based pipeline usage.
+You can use `--auth-azcli` to enable it.
+
+```
+$ kusto-ingest file ./testdata/logs.multijson \
+    # ... other options
+    --auth-azcli
+```
+
+### Authentication - Service Principal ID and Secret (not recommended)
+
+`kusto-ingest` supports using service principal ID and secret for authentication. This is helpful for existing
+pipeline usage with service principal ID and secret. But this is not recommended for new pipeline usage.
+
+```
+$ kusto-ingest file ./testdata/logs.multijson \
+    --auth-tenant-id="<tenant-id>" \
+    --auth-client-id="<client-id>" \
+    --auth-client-secret="<client-secret>" \
+    # ... other options
+```
+
 ## TODO
 
-- [ ] More authentications support
+- [ ] MSI auth support
 - [ ] More file formats support
 - [ ] CLI piping
 

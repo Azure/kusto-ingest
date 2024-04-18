@@ -1,11 +1,13 @@
 package kusto
 
 // AuthOptions provides the authenticate configuration for the Kusto client.
-// TODO: add support for MSI / CLI based authentication.
+// TODO: add support for MSI based authentication.
 type AuthOptions struct {
-	TenantID     string `env:"AZURE_TENANT_ID"`
-	ClientID     string `env:"AZURE_CLIENT_ID"`
-	ClientSecret string `env:"AZURE_CLIENT_SECRET"`
+	TenantID     string `env:"AZURE_TENANT_ID" help:"The Azure tenant ID."`
+	ClientID     string `env:"AZURE_CLIENT_ID" help:"The Azure client ID."`
+	ClientSecret string `env:"AZURE_CLIENT_SECRET" help:"The Azure client secret."`
+
+	AZCLI    bool   `env:"AZURE_CLI" help:"Use Azure CLI for authentication."`
 }
 
 // KustoTargetOptions provides the target configuration for the Kusto client.
