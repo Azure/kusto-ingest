@@ -14,6 +14,11 @@ func (a AuthOptions) UseAZCLI() bool {
 	return a.AZCLI
 }
 
+// PrepareKustoConnectionStringBuilder setups the connection string for the Kusto client.
+// The authentication method is determined by the provided AuthOptions with the following priority:
+//
+// - azcli
+// - client id/secret
 func (a AuthOptions) PrepareKustoConnectionStringBuilder(b *kusto.ConnectionStringBuilder) {
 	switch {
 	case a.UseAZCLI():
