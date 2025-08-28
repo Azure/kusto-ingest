@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-kusto-go v0.16.1
 	github.com/alecthomas/kong v1.10.0
 	github.com/charmbracelet/log v0.4.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
