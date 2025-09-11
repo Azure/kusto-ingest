@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Azure/azure-kusto-go v0.16.1
-	github.com/alecthomas/kong v1.10.0
+	github.com/alecthomas/kong v1.12.1
 	github.com/charmbracelet/log v0.4.1
 	github.com/stretchr/testify v1.11.1
 )
