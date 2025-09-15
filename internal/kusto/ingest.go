@@ -10,7 +10,9 @@ func createKustoClient(
 	auth AuthOptions,
 ) (*kusto.Client, error) {
 	builder := kusto.NewConnectionStringBuilder(target.Endpoint)
-	auth.PrepareKustoConnectionStringBuilder(builder)
+	if err := auth.PrepareKustoConnectionStringBuilder(builder); err != nil {
+		return nil, err
+	}
 
 	return kusto.New(builder)
 }

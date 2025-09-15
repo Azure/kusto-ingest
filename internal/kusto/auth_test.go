@@ -7,26 +7,31 @@ import (
 )
 
 func TestAuthOptions_Validate(t *testing.T) {
-	cases := []struct{
-		name string
-		opts AuthOptions
+	cases := []struct {
+		name        string
+		opts        AuthOptions
 		expectedErr bool
 	}{
 		{
-			name: "no auth",
-			opts: AuthOptions{},
+			name:        "no auth",
+			opts:        AuthOptions{},
 			expectedErr: true,
 		},
 		{
-			name: "azcli",
-			opts: AuthOptions{AZCLI: true},
+			name:        "azcli",
+			opts:        AuthOptions{AZCLI: true},
+			expectedErr: false,
+		},
+		{
+			name:        "msi",
+			opts:        AuthOptions{ManagedIdentityResourceID: "msi-id"},
 			expectedErr: false,
 		},
 		{
 			name: "client id/secret",
 			opts: AuthOptions{
-				TenantID: "tenant-id",
-				ClientID: "client-id",
+				TenantID:     "tenant-id",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 			expectedErr: false,
@@ -34,7 +39,7 @@ func TestAuthOptions_Validate(t *testing.T) {
 		{
 			name: "partial client id/secret",
 			opts: AuthOptions{
-				ClientID: "client-id",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 			expectedErr: true,
@@ -42,9 +47,9 @@ func TestAuthOptions_Validate(t *testing.T) {
 		{
 			name: "azcli and client id/secret",
 			opts: AuthOptions{
-				AZCLI: true,
-				TenantID: "tenant-id",
-				ClientID: "client-id",
+				AZCLI:        true,
+				TenantID:     "tenant-id",
+				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
 			expectedErr: false,
