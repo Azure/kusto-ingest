@@ -10,7 +10,7 @@ import (
 
 func (m ManagementOptions) Run(cli cli.Provider) error {
 	cli.Logger().Debug(
-		"file ingestion settings",
+		"management command settings",
 		"target.endpoint", m.KustoTarget.Endpoint,
 		"target.database", m.KustoTarget.Database,
 		"auth.tenant", m.Auth.TenantID,
