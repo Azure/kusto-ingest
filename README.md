@@ -24,6 +24,17 @@ $ kusto-ingest file ./testdata/logs.multijson \
     --auth-azcli
 ```
 
+### Authentication - Managed Identity
+
+`kusto-ingest` supports using managed identity for authentication. This option is helpful for Azure services running in Azure.
+You can use `--auth-managed-identity-resource-id=<mi-resource-id>` to enable it.
+
+```
+$ kusto-ingest file ./testdata/logs.multijson \
+    # ... other options
+    --auth-managed-identity-resource-id=<mi-resource-id>
+```
+
 ### Authentication - Service Principal ID and Secret (not recommended)
 
 `kusto-ingest` supports using service principal ID and secret for authentication. This is helpful for existing
@@ -39,7 +50,6 @@ $ kusto-ingest file ./testdata/logs.multijson \
 
 ## TODO
 
-- [ ] MSI auth support
 - [ ] More file formats support
 - [ ] CLI piping
 
