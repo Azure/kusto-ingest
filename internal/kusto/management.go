@@ -13,7 +13,6 @@ func (m ManagementOptions) Run(cli cli.Provider) error {
 		"file ingestion settings",
 		"target.endpoint", m.KustoTarget.Endpoint,
 		"target.database", m.KustoTarget.Database,
-		"target.table", m.KustoTarget.Table,
 		"auth.tenant", m.Auth.TenantID,
 		"auth.clientID", m.Auth.ClientID,
 	)
