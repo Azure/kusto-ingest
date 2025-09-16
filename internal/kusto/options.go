@@ -31,3 +31,14 @@ type FileIngestOptions struct {
 	// for unit test
 	ingestorBuildSettings `kong:"-"`
 }
+
+// ManagementOptions provides the configuration for management commands.
+type ManagementOptions struct {
+	Source []byte `arg:"" type:"filecontent" required:"" help:"The source file to execute."`
+
+	Auth        AuthOptions        `embed:"" prefix:"auth-"`
+	KustoTarget KustoTargetOptions `embed:"" prefix:"kusto-"`
+
+	// for unit test
+	ingestorBuildSettings `kong:"-"`
+}

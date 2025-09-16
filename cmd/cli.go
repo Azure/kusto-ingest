@@ -10,7 +10,8 @@ import (
 var CLI struct {
 	Verbose bool `short:"v" help:"Enable verbose logging."`
 
-	File kusto.FileIngestOptions `cmd:"" help:"Ingest data from local file."`
+	File       kusto.FileIngestOptions `cmd:"" help:"Ingest data from local file."`
+	Management kusto.ManagementOptions `cmd:"" aliases:"mgmt" help:"Run Kusto management commands from a file."`
 }
 
 // Main is the entry point for the CLI application.
