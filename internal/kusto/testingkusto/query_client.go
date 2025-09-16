@@ -10,7 +10,7 @@ import (
 
 // QueryClient is a fake implementation of ingest.QueryClient for tests.
 type QueryClient struct {
-	MgmtFn  func(ctx context.Context, db string, query kusto.Statement, options ...kusto.MgmtOption) (*kusto.RowIterator, error)
+	MgmtFn  func(ctx context.Context, db string, query kusto.Statement, options ...kusto.QueryOption) (*kusto.RowIterator, error)
 	QueryFn func(ctx context.Context, db string, query kusto.Statement, options ...kusto.QueryOption) (*kusto.RowIterator, error)
 	CloseFn func() error
 
@@ -51,7 +51,7 @@ func (qc *QueryClient) Query(ctx context.Context, db string, query kusto.Stateme
 	return nil, nil
 }
 
-func (qc *QueryClient) Mgmt(ctx context.Context, db string, query kusto.Statement, options ...kusto.MgmtOption) (*kusto.RowIterator, error) {
+func (qc *QueryClient) Mgmt(ctx context.Context, db string, query kusto.Statement, options ...kusto.QueryOption) (*kusto.RowIterator, error) {
 	qc.MgmtCalls = append(qc.MgmtCalls, MgmtCall{DB: db, Query: query})
 	if qc.MgmtFn != nil {
 		return qc.MgmtFn(ctx, db, query, options...)

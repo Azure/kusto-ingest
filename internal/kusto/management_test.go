@@ -17,7 +17,7 @@ func Test_ManagementOptions_Run_Success(t *testing.T) {
 
 	executed := false
 	q := testingkusto.NewQueryClient(func(qc *testingkusto.QueryClient) {
-		qc.MgmtFn = func(_ context.Context, db string, stmt kusto.Statement, _ ...kusto.MgmtOption) (*kusto.RowIterator, error) {
+		qc.MgmtFn = func(_ context.Context, db string, stmt kusto.Statement, _ ...kusto.QueryOption) (*kusto.RowIterator, error) {
 			executed = true
 			assert.Equal(t, "TestDatabase", db)
 			return nil, nil
@@ -63,7 +63,7 @@ func Test_ManagementOptions_Run_MgmtError(t *testing.T) {
 	cli := testingcli.New()
 
 	q := testingkusto.NewQueryClient(func(qc *testingkusto.QueryClient) {
-		qc.MgmtFn = func(_ context.Context, db string, stmt kusto.Statement, _ ...kusto.MgmtOption) (*kusto.RowIterator, error) {
+		qc.MgmtFn = func(_ context.Context, db string, stmt kusto.Statement, _ ...kusto.QueryOption) (*kusto.RowIterator, error) {
 			return nil, errors.New("mgmt failed")
 		}
 	})
