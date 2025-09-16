@@ -2,7 +2,10 @@
 
 Ingest logs data to Kusto with `github.com/Azure/azure-kusto-go`.
 
-## Usage - Ingest file
+
+## Usage
+
+### Ingest file
 
 ```
 $ kusto-ingest file ./testdata/logs.multijson \
@@ -13,10 +16,36 @@ $ kusto-ingest file ./testdata/logs.multijson \
     --kusto-table="TestTable"
 ```
 
-### Authentication - AZCLI
+### Management commands
 
-`kusto-ingest` supports using azcli for authentication. This option is helpful for OIDC based pipeline usage.
-You can use `--auth-azcli` to enable it.
+Run Kusto management commands from a file (e.g., create tables, update policies):
+
+```
+$ kusto-ingest management ./testdata/commands.kql \
+    --auth-azcli \
+    --kusto-endpoint="https://test.kusto.windows.net" \
+    --kusto-database="Test"
+```
+
+Where `./testdata/commands.kql` contains Kusto management commands, e.g.:
+
+```
+.create table TestTable (Timestamp: datetime, Message: string)
+.alter table TestTable policy update @'{"SoftDeletePeriod": "P365D"}'
+```
+
+#### Options for management subcommand
+
+- `--auth-azcli` or other authentication options (see below)
+- `--kusto-endpoint` (required)
+- `--kusto-database` (required)
+
+
+### Authentication
+
+#### AZCLI
+
+Use Azure CLI for authentication (helpful for OIDC-based pipeline usage):
 
 ```
 $ kusto-ingest file ./testdata/logs.multijson \
@@ -24,10 +53,10 @@ $ kusto-ingest file ./testdata/logs.multijson \
     --auth-azcli
 ```
 
-### Authentication - Managed Identity
 
-`kusto-ingest` supports using managed identity for authentication. This option is helpful for Azure services running in Azure.
-You can use `--auth-managed-identity-resource-id=<mi-resource-id>` to enable it.
+#### Managed Identity
+
+Use managed identity for authentication (helpful for Azure services running in Azure):
 
 ```
 $ kusto-ingest file ./testdata/logs.multijson \
@@ -35,10 +64,10 @@ $ kusto-ingest file ./testdata/logs.multijson \
     --auth-managed-identity-resource-id=<mi-resource-id>
 ```
 
-### Authentication - Service Principal ID and Secret (not recommended)
 
-`kusto-ingest` supports using service principal ID and secret for authentication. This is helpful for existing
-pipeline usage with service principal ID and secret. But this is not recommended for new pipeline usage.
+#### Service Principal ID and Secret (not recommended)
+
+Use service principal ID and secret for authentication (not recommended for new pipelines):
 
 ```
 $ kusto-ingest file ./testdata/logs.multijson \

@@ -8,6 +8,9 @@
 *.so
 *.dylib
 
+# Built binary
+kusto-ingest
+
 # Test binary, built with `go test -c`
 *.test
 
