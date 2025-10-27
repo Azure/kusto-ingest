@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/Azure/azure-kusto-go/kusto/data/errors"
 	"github.com/Azure/azure-kusto-go/kusto/ingest"
 	"github.com/Azure/kusto-ingest/internal/cli/testingcli"
 	"github.com/Azure/kusto-ingest/internal/kusto/testingkusto"
@@ -121,4 +122,73 @@ func Test_FileIngestOptions_Run_IngestFile_WithMapping(t *testing.T) {
 
 	err := opts.Run(cli)
 	assert.NoError(t, err)
+}
+
+func Test_FileIngestOptions_Run_RetryLogic(t *testing.T) {
+	sourceFile := writeToTestFile(t, "logs.json", []byte("{}"))
+	
+	t.Run("retries on transient error", func(t *testing.T) {
+		cli := testingcli.New()
+		
+		callCount := 0
+		ingestor := testingkusto.New(func(ing *testingkusto.Ingestor) {
+			ing.FromFileFunc = func(ctx context.Context, fPath string, options ...ingest.FileOption) (*ingest.Result, error) {
+				callCount++
+				if callCount < 2 {
+					// Return a retryable HTTP error
+					return nil, errors.ES(errors.OpFileIngest, errors.KHTTPError, "internal server error")
+				}
+				return &ingest.Result{}, nil
+			}
+		})
+
+		opts := FileIngestOptions{
+			SourceFile:  sourceFile,
+			Format:      "multijson",
+			MaxRetries:  2,  // Fewer retries for faster test
+			MaxTimeout:  10, // Shorter timeout for faster test
+			Auth:        newTestAuth(),
+			KustoTarget: newTestKustoTarget(),
+			ingestorBuildSettings: ingestorBuildSettings{
+				CreateIngestor: func(target KustoTargetOptions, auth AuthOptions) (ingest.Ingestor, error) {
+					return ingestor, nil
+				},
+			},
+		}
+
+		err := opts.Run(cli)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, callCount, "should retry on transient errors")
+	})
+
+	t.Run("fails immediately on non-retryable error", func(t *testing.T) {
+		cli := testingcli.New()
+		
+		callCount := 0
+		ingestor := testingkusto.New(func(ing *testingkusto.Ingestor) {
+			ing.FromFileFunc = func(ctx context.Context, fPath string, options ...ingest.FileOption) (*ingest.Result, error) {
+				callCount++
+				// Return a non-retryable client args error
+				return nil, errors.ES(errors.OpFileIngest, errors.KClientArgs, "invalid arguments")
+			}
+		})
+
+		opts := FileIngestOptions{
+			SourceFile:  sourceFile,
+			Format:      "multijson",
+			MaxRetries:  2,  // Fewer retries for faster test
+			MaxTimeout:  10, // Shorter timeout for faster test
+			Auth:        newTestAuth(),
+			KustoTarget: newTestKustoTarget(),
+			ingestorBuildSettings: ingestorBuildSettings{
+				CreateIngestor: func(target KustoTargetOptions, auth AuthOptions) (ingest.Ingestor, error) {
+					return ingestor, nil
+				},
+			},
+		}
+
+		err := opts.Run(cli)
+		assert.Error(t, err)
+		assert.Equal(t, 1, callCount, "should not retry on non-retryable errors")
+	})
 }

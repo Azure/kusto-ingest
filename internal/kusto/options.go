@@ -28,6 +28,10 @@ type FileIngestOptions struct {
 	Auth        AuthOptions        `embed:"" prefix:"auth-"`
 	KustoTarget KustoTargetOptions `embed:"" prefix:"kusto-"`
 
+	// Retry and timeout configuration
+	MaxRetries int `optional:"" default:"3" help:"Maximum number of retries for transient errors (default: 3)."`
+	MaxTimeout int `optional:"" default:"60" help:"Maximum timeout in seconds for all retries (default: 60)."`
+
 	// for unit test
 	ingestorBuildSettings `kong:"-"`
 }
@@ -38,6 +42,10 @@ type ManagementOptions struct {
 
 	Auth        AuthOptions        `embed:"" prefix:"auth-"`
 	KustoTarget KustoTargetOptions `embed:"" prefix:"kusto-"`
+
+	// Retry and timeout configuration
+	MaxRetries int `optional:"" default:"3" help:"Maximum number of retries for transient errors (default: 3)."`
+	MaxTimeout int `optional:"" default:"60" help:"Maximum timeout in seconds for all retries (default: 60)."`
 
 	// for unit test
 	ingestorBuildSettings `kong:"-"`

@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Azure/azure-kusto-go/kusto/data/errors"
 	"github.com/Azure/azure-kusto-go/kusto/ingest"
 	"github.com/Azure/kusto-ingest/internal/cli"
 )
@@ -46,6 +47,8 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 		"target.table", f.KustoTarget.Table,
 		"auth.tenant", f.Auth.TenantID,
 		"auth.clientID", f.Auth.ClientID,
+		"maxRetries", f.MaxRetries,
+		"maxTimeout", f.MaxTimeout,
 	)
 
 	fileOptions, err := f.FileOptions()
@@ -64,15 +67,46 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 
 	cli.Logger().Info("file ingestion started")
 	start := time.Now()
-	_, err = ingestor.FromFile(
-		ctx,
-		f.SourceFile,
-		fileOptions...,
-	)
-	if err != nil {
-		return fmt.Errorf("ingest from file %q: %w", f.SourceFile, err)
-	}
-	cli.Logger().Info("file ingestion completed", "duration", time.Since(start))
 
-	return nil
+	var lastErr error
+	var attempt int
+	baseDelay := 1 * time.Second
+	maxDelay := 10 * time.Second
+	maxTimeout := time.Duration(f.MaxTimeout) * time.Second
+	deadline := time.Now().Add(maxTimeout)
+
+	for attempt = 0; attempt <= f.MaxRetries; attempt++ {
+		_, err = ingestor.FromFile(
+			ctx,
+			f.SourceFile,
+			fileOptions...,
+		)
+		if err == nil {
+			cli.Logger().Info("file ingestion completed", "duration", time.Since(start), "attempt", attempt+1)
+			return nil
+		}
+
+		// Check error type for retry logic using azure-kusto-go SDK's Retry function
+		if !errors.Retry(err) {
+			cli.Logger().Error("non-retryable error, aborting", "error", err)
+			return fmt.Errorf("ingest from file %q: %w", f.SourceFile, err)
+		}
+
+		lastErr = err
+		
+		// Calculate next backoff duration with exponential backoff and jitter
+		backoffDelay := exponentialBackoffWithJitter(attempt, baseDelay, maxDelay)
+		
+		if time.Now().Add(backoffDelay).After(deadline) {
+			cli.Logger().Error("max timeout reached, aborting retries", "error", err)
+			break
+		}
+		
+		cli.Logger().Warn("transient error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
+		time.Sleep(backoffDelay)
+	}
+
+	return fmt.Errorf("ingest from file %q after %d retries: %w", f.SourceFile, attempt, lastErr)
 }
+
+
