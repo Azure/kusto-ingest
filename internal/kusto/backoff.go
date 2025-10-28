@@ -8,7 +8,6 @@ import (
 
 // exponentialBackoffWithJitter calculates the next backoff duration using exponential backoff with jitter.
 // This helps prevent thundering herd issues when many clients retry simultaneously.
-//
 // Formula: baseDelay * (2^attempt) * (1 + jitter)
 // Where jitter is a random value between 0 and 0.1 (10% jitter)
 func exponentialBackoffWithJitter(attempt int, baseDelay time.Duration) time.Duration {
