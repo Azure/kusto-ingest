@@ -65,48 +65,48 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 	ctx, cancel := cli.Context()
 	defer cancel()
 
-	cli.Logger().Info("file ingestion started")
-	start := time.Now()
+	invokeIngest := func() error {
+		_, err := ingestor.FromFile(ctx, f.SourceFile, fileOptions...)
+		return err
+	}
 
-	var lastErr error
-	var attempt int
+	cli.Logger().Info("file ingestion started")
+	err = f.invokeIngestWithRetries(cli, invokeIngest)
+	if err != nil {
+		cli.Logger().Error("failed to ingest file", "error", err)
+	}
+	return err
+}
+
+func (f FileIngestOptions) invokeIngestWithRetries(cli cli.Provider, invokeIngest func() error) error {
+	start := time.Now()
+	var err error
 	baseDelay := 1 * time.Second
-	maxDelay := 10 * time.Second
 	maxTimeout := time.Duration(f.MaxTimeout) * time.Second
 	deadline := time.Now().Add(maxTimeout)
 
-	for attempt = 0; attempt <= f.MaxRetries; attempt++ {
-		_, err = ingestor.FromFile(
-			ctx,
-			f.SourceFile,
-			fileOptions...,
-		)
+	for attempt := 0; attempt <= f.MaxRetries; attempt++ {
+		err = invokeIngest()
 		if err == nil {
-			cli.Logger().Info("file ingestion completed", "duration", time.Since(start), "attempt", attempt+1)
+			cli.Logger().Info("file ingestion completed successfully", "duration", time.Since(start), "attempt", attempt+1)
 			return nil
 		}
 
 		// Check error type for retry logic using azure-kusto-go SDK's Retry function
 		if !errors.Retry(err) {
-			cli.Logger().Error("non-retryable error, aborting", "error", err)
-			return fmt.Errorf("ingest from file %q: %w", f.SourceFile, err)
+			return fmt.Errorf("non-retryable kusto error: %w", err)
 		}
 
-		lastErr = err
-		
 		// Calculate next backoff duration with exponential backoff and jitter
-		backoffDelay := exponentialBackoffWithJitter(attempt, baseDelay, maxDelay)
-		
+		backoffDelay := exponentialBackoffWithJitter(attempt, baseDelay)
+
 		if time.Now().Add(backoffDelay).After(deadline) {
-			cli.Logger().Error("max timeout reached, aborting retries", "error", err)
-			break
+			return fmt.Errorf("max timeout reached after %d retries: %w", attempt, err)
 		}
-		
-		cli.Logger().Warn("transient error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
+
+		cli.Logger().Warn("transient kusto error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
 		time.Sleep(backoffDelay)
 	}
 
-	return fmt.Errorf("ingest from file %q after %d retries: %w", f.SourceFile, attempt, lastErr)
+	return fmt.Errorf("exhausted max retries (%d): %w", f.MaxRetries, err)
 }
-
-

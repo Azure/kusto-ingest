@@ -29,45 +29,49 @@ func (m ManagementOptions) Run(cli cli.Provider) error {
 	ctx, cancel := cli.Context()
 	defer cancel()
 
-	cli.Logger().Info("executing management commands")
-	start := time.Now()
 	stmt := kql.New("").AddUnsafe(string(m.Source))
+	invokeQuery := func() error {
+		_, err := queryer.Mgmt(ctx, m.KustoTarget.Database, stmt)
+		return err
+	}
 
-	var lastErr error
-	var attempt int
+	cli.Logger().Info("executing management command")
+	err = m.invokeQueryWithRetries(cli, invokeQuery)
+	if err != nil {
+		cli.Logger().Error("failed to execute management command", "error", err)
+	}
+	return err
+}
+
+func (m ManagementOptions) invokeQueryWithRetries(cli cli.Provider, invokeQuery func() error) error {
+	start := time.Now()
+	var err error
 	baseDelay := 1 * time.Second
-	maxDelay := 10 * time.Second
 	maxTimeout := time.Duration(m.MaxTimeout) * time.Second
 	deadline := time.Now().Add(maxTimeout)
 
-	for attempt = 0; attempt <= m.MaxRetries; attempt++ {
-		_, err = queryer.Mgmt(ctx, m.KustoTarget.Database, stmt)
+	for attempt := 0; attempt <= m.MaxRetries; attempt++ {
+		err = invokeQuery()
 		if err == nil {
-			cli.Logger().Info("management commands executed", "duration", time.Since(start), "attempt", attempt+1)
+			cli.Logger().Info("management command executed successfully", "duration", time.Since(start), "attempt", attempt+1)
 			return nil
 		}
 
 		// Check error type for retry logic using azure-kusto-go SDK's Retry function
 		if !errors.Retry(err) {
-			cli.Logger().Error("non-retryable error, aborting", "error", err)
-			return fmt.Errorf("execute management commands: %w", err)
+			return fmt.Errorf("non-retryable kusto error: %w", err)
 		}
 
-		lastErr = err
-		
 		// Calculate next backoff duration with exponential backoff and jitter
-		backoffDelay := exponentialBackoffWithJitter(attempt, baseDelay, maxDelay)
-		
+		backoffDelay := exponentialBackoffWithJitter(attempt, baseDelay)
+
 		if time.Now().Add(backoffDelay).After(deadline) {
-			cli.Logger().Error("max timeout reached, aborting retries", "error", err)
-			break
+			return fmt.Errorf("max timeout reached after %d retries: %w", attempt, err)
 		}
-		
-		cli.Logger().Warn("transient error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
+
+		cli.Logger().Warn("transient kusto error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
 		time.Sleep(backoffDelay)
 	}
 
-	return fmt.Errorf("execute management commands after %d retries: %w", attempt, lastErr)
+	return fmt.Errorf("exhausted max retries (%d): %w", m.MaxRetries, err)
 }
-
-
