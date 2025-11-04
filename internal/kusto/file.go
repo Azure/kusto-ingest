@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/Azure/azure-kusto-go/kusto/data/errors"
 	"github.com/Azure/azure-kusto-go/kusto/ingest"
 	"github.com/Azure/kusto-ingest/internal/cli"
 )
@@ -71,42 +70,18 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 	}
 
 	cli.Logger().Info("file ingestion started")
-	err = f.invokeIngestWithRetries(cli, invokeIngest)
+	start := time.Now()
+	err = invokeWithRetries(
+		invokeIngest,
+		f.MaxRetries,
+		f.MaxTimeout,
+		cli.Logger(),
+	)
 	if err != nil {
 		cli.Logger().Error("failed to ingest file", "error", err)
-	}
-	return err
-}
-
-func (f FileIngestOptions) invokeIngestWithRetries(cli cli.Provider, invokeIngest func() error) error {
-	start := time.Now()
-	var err error
-	baseDelay := 1 * time.Second
-	maxTimeout := time.Duration(f.MaxTimeout) * time.Second
-	deadline := time.Now().Add(maxTimeout)
-
-	for attempt := 0; attempt <= f.MaxRetries; attempt++ {
-		err = invokeIngest()
-		if err == nil {
-			cli.Logger().Info("file ingestion completed successfully", "duration", time.Since(start), "attempt", attempt+1)
-			return nil
-		}
-
-		// Check error type for retry logic using azure-kusto-go SDK's Retry function
-		if !errors.Retry(err) {
-			return fmt.Errorf("non-retryable kusto error: %w", err)
-		}
-
-		// Calculate next backoff duration with exponential backoff and jitter
-		backoffDelay := exponentialBackoffWithJitter(attempt, baseDelay)
-
-		if time.Now().Add(backoffDelay).After(deadline) {
-			return fmt.Errorf("max timeout reached after %d retries: %w", attempt, err)
-		}
-
-		cli.Logger().Warn("transient kusto error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
-		time.Sleep(backoffDelay)
+		return err
 	}
 
-	return fmt.Errorf("exhausted max retries (%d): %w", f.MaxRetries, err)
+	cli.Logger().Info("file ingestion completed successfully", "duration", time.Since(start))
+	return nil
 }

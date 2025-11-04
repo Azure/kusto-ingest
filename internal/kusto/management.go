@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/azure-kusto-go/kusto/data/errors"
 	"github.com/Azure/azure-kusto-go/kusto/kql"
 	"github.com/Azure/kusto-ingest/internal/cli"
 )
@@ -36,44 +35,19 @@ func (m ManagementOptions) Run(cli cli.Provider) error {
 	}
 
 	cli.Logger().Info("executing management command")
-	err = m.invokeQueryWithRetries(cli, invokeQuery)
+
+	start := time.Now()
+	err = invokeWithRetries(
+		invokeQuery,
+		m.MaxRetries,
+		m.MaxTimeout,
+		cli.Logger(),
+	)
 	if err != nil {
 		cli.Logger().Error("failed to execute management command", "error", err)
-	}
-	return err
-}
-
-func (m ManagementOptions) invokeQueryWithRetries(cli cli.Provider, invokeQuery func() error) error {
-	start := time.Now()
-	var err error
-	baseDelay := 1 * time.Second
-	maxTimeout := time.Duration(m.MaxTimeout) * time.Second
-	deadline := time.Now().Add(maxTimeout)
-
-	for attempt := 0; attempt <= m.MaxRetries; attempt++ {
-		err = invokeQuery()
-		if err == nil {
-			cli.Logger().Info("management command executed successfully", "duration", time.Since(start), "attempt", attempt+1)
-			return nil
-		}
-
-		// Check error type for retry logic using azure-kusto-go SDK's Retry function
-		if !errors.Retry(err) {
-			return fmt.Errorf("non-retryable kusto error: %w", err)
-		}
-
-		// Calculate next backoff duration with exponential backoff and jitter
-		backoffDelay := exponentialBackoffWithJitter(attempt, baseDelay)
-
-		if time.Now().Add(backoffDelay).After(deadline) {
-			return fmt.Errorf("max timeout reached after %d retries: %w", attempt, err)
-		}
-
-		if attempt < m.MaxRetries {
-			cli.Logger().Warn("transient kusto error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
-			time.Sleep(backoffDelay)
-		}
+		return err
 	}
 
-	return fmt.Errorf("exhausted max retries (%d): %w", m.MaxRetries, err)
+	cli.Logger().Info("management command executed successfully", "duration", time.Since(start))
+	return nil
 }

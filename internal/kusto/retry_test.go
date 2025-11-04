@@ -4,10 +4,12 @@ import (
 	"testing"
 	"time"
 
+	kustoerrors "github.com/Azure/azure-kusto-go/kusto/data/errors"
+	"github.com/Azure/kusto-ingest/internal/cli/testingcli"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExponentialBackoffWithJitter(t *testing.T) {
+func TestCalculateDelay(t *testing.T) {
 	baseDelay := 1 * time.Second
 
 	tests := []struct {
@@ -90,7 +92,7 @@ func TestExponentialBackoffWithJitter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run the test multiple times to account for randomness in jitter
 			for i := 0; i < 10; i++ {
-				result := exponentialBackoffWithJitter(tt.attempt, baseDelay)
+				result := calculateDelay(tt.attempt, baseDelay)
 
 				assert.GreaterOrEqual(t, result, tt.expected.min, "backoff should be at least minimum expected")
 				assert.LessOrEqual(t, result, tt.expected.max, "backoff should not exceed maximum expected")
@@ -102,14 +104,14 @@ func TestExponentialBackoffWithJitter(t *testing.T) {
 	}
 }
 
-func TestExponentialBackoffWithJitterDistribution(t *testing.T) {
+func TestCalculateDelayDistribution(t *testing.T) {
 	// Test that jitter is actually adding randomness
 	baseDelay := 1 * time.Second
 	attempt := 1
 
 	results := make([]time.Duration, 100)
 	for i := 0; i < 100; i++ {
-		results[i] = exponentialBackoffWithJitter(attempt, baseDelay)
+		results[i] = calculateDelay(attempt, baseDelay)
 	}
 
 	// Check that we get different values (indicating jitter is working)
@@ -129,4 +131,88 @@ func TestExponentialBackoffWithJitterDistribution(t *testing.T) {
 		assert.GreaterOrEqual(t, result, expectedMin, "all results should be at least base exponential value")
 		assert.LessOrEqual(t, result, expectedMax, "all results should be within jitter bounds")
 	}
+}
+
+func TestInvokeWithRetries(t *testing.T) {
+	t.Run("success on first attempt", func(t *testing.T) {
+		cli := testingcli.New()
+
+		callCount := 0
+		invoke := func() error {
+			callCount++
+			return nil
+		}
+
+		err := invokeWithRetries(invoke, 3, 10, cli.Logger())
+		assert.NoError(t, err)
+		assert.Equal(t, 1, callCount, "should succeed on first attempt")
+	})
+
+	t.Run("retries on transient error then succeeds", func(t *testing.T) {
+		cli := testingcli.New()
+
+		callCount := 0
+		invoke := func() error {
+			callCount++
+			if callCount < 3 {
+				// Return a retryable error
+				return kustoerrors.ES(kustoerrors.OpQuery, kustoerrors.KTimeout, "request timed out")
+			}
+			return nil
+		}
+
+		err := invokeWithRetries(invoke, 5, 10, cli.Logger())
+		assert.NoError(t, err)
+		assert.Equal(t, 3, callCount, "should retry until success")
+	})
+
+	t.Run("fails immediately on non-retryable error", func(t *testing.T) {
+		cli := testingcli.New()
+
+		callCount := 0
+		invoke := func() error {
+			callCount++
+			// Return a non-retryable client args error
+			return kustoerrors.ES(kustoerrors.OpQuery, kustoerrors.KClientArgs, "invalid arguments")
+		}
+
+		err := invokeWithRetries(invoke, 3, 10, cli.Logger())
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "non-retryable kusto error")
+		assert.Equal(t, 1, callCount, "should not retry on non-retryable errors")
+	})
+
+	t.Run("fails after exhausting max retries", func(t *testing.T) {
+		cli := testingcli.New()
+
+		callCount := 0
+		invoke := func() error {
+			callCount++
+			// Always return a retryable error
+			return kustoerrors.ES(kustoerrors.OpQuery, kustoerrors.KHTTPError, "internal server error")
+		}
+
+		err := invokeWithRetries(invoke, 2, 30, cli.Logger())
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "exhausted max retries (2)")
+		assert.Equal(t, 3, callCount, "should attempt MaxRetries+1 times (0, 1, 2)")
+	})
+
+	t.Run("respects max timeout", func(t *testing.T) {
+		cli := testingcli.New()
+
+		callCount := 0
+		invoke := func() error {
+			callCount++
+			// Always return a retryable error
+			return kustoerrors.ES(kustoerrors.OpQuery, kustoerrors.KTimeout, "request timed out")
+		}
+
+		err := invokeWithRetries(invoke, 10, 1, cli.Logger())
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "max timeout reached")
+		// With 1 second timeout and exponential backoff (1s, 2s, 4s...),
+		// we should only get a few attempts before timeout
+		assert.Less(t, callCount, 5, "should stop early due to timeout")
+	})
 }
