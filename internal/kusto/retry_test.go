@@ -133,6 +133,113 @@ func TestCalculateDelayDistribution(t *testing.T) {
 	}
 }
 
+func TestCalculateDelayOverflow(t *testing.T) {
+	maxDelay := time.Duration(9223372036854775807) // math.MaxInt64
+
+	tests := []struct {
+		name      string
+		attempt   int
+		baseDelay time.Duration
+		expected  time.Duration
+	}{
+		{
+			name:      "attempt 63 should return max duration",
+			attempt:   63,
+			baseDelay: 1 * time.Second,
+			expected:  maxDelay,
+		},
+		{
+			name:      "attempt 64 should return max duration",
+			attempt:   64,
+			baseDelay: 1 * time.Second,
+			expected:  maxDelay,
+		},
+		{
+			name:      "attempt 100 should return max duration",
+			attempt:   100,
+			baseDelay: 1 * time.Second,
+			expected:  maxDelay,
+		},
+		{
+			name:      "large base delay with moderate attempt should overflow",
+			attempt:   40,
+			baseDelay: time.Duration(1 << 30), // 1073741824 nanoseconds
+			expected:  maxDelay,
+		},
+		{
+			name:      "attempt 62 with 1 second base should not overflow",
+			attempt:   62,
+			baseDelay: 1 * time.Second,
+			expected:  maxDelay, // 2^62 * 1 second would be ~146 years, but should be capped
+		},
+		{
+			name:      "very large base delay with attempt 1 should overflow",
+			attempt:   1,
+			baseDelay: time.Duration(1 << 62), // Half of MaxInt64
+			expected:  maxDelay,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := calculateDelay(tt.attempt, tt.baseDelay)
+
+			// Result should equal maxDelay
+			assert.Equal(t, tt.expected, result, "overflow should return max duration")
+
+			// Verify result is never negative (which would indicate overflow bug)
+			assert.Greater(t, result, time.Duration(0), "result should never be negative")
+		})
+	}
+}
+
+func TestCalculateDelayNoOverflow(t *testing.T) {
+	// Test cases that should NOT overflow
+	tests := []struct {
+		name      string
+		attempt   int
+		baseDelay time.Duration
+	}{
+		{
+			name:      "attempt 10 with 1 second base",
+			attempt:   10,
+			baseDelay: 1 * time.Second,
+		},
+		{
+			name:      "attempt 20 with 1 millisecond base",
+			attempt:   20,
+			baseDelay: 1 * time.Millisecond,
+		},
+		{
+			name:      "attempt 30 with 1 microsecond base",
+			attempt:   30,
+			baseDelay: 1 * time.Microsecond,
+		},
+		{
+			name:      "attempt 50 with 1 nanosecond base",
+			attempt:   50,
+			baseDelay: 1 * time.Nanosecond,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := calculateDelay(tt.attempt, tt.baseDelay)
+
+			// Result should be positive
+			assert.Greater(t, result, time.Duration(0), "result should be positive")
+
+			// Result should be reasonable (not negative overflow)
+			assert.Less(t, result, time.Duration(9223372036854775807), "result should not exceed MaxInt64")
+
+			// Result should be at least baseDelay * 2^attempt (before jitter, accounting for jitter range)
+			expectedMin := tt.baseDelay * time.Duration(int64(1)<<tt.attempt)
+			// With jitter up to 10%, the result can be up to 1.1x the expected value
+			assert.GreaterOrEqual(t, result, expectedMin, "result should be at least the exponential base")
+		})
+	}
+}
+
 func TestInvokeWithRetries(t *testing.T) {
 	t.Run("success on first attempt", func(t *testing.T) {
 		cli := testingcli.New()

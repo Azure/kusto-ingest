@@ -70,7 +70,7 @@ func invokeWithRetries(
 /*
 calculateDelay computes the next retry delay duration.
 Uses exponential backoff with jitter to prevent thundering herd issues.
-Formula: baseDelay * (2^attempt) * (1 + jitter)
+Formula: min(maxRetryDelay, baseDelay * (2^attempt)) * (1 + jitter)
 Where jitter is a random value between 0 and 0.1 (10% jitter)
 */
 func calculateDelay(attempt int, baseDelay time.Duration) time.Duration {
@@ -78,12 +78,37 @@ func calculateDelay(attempt int, baseDelay time.Duration) time.Duration {
 		return baseDelay
 	}
 
-	// Calculate exponential backoff: baseDelay * 2^attempt
-	delay := baseDelay * time.Duration(math.Pow(2, float64(attempt)))
+	// Check for overflow before multiplying by checking if we would exceed math.MaxInt64
+	maxDelay := time.Duration(math.MaxInt64)
+
+	// Calculate 2^attempt using bit shifting, checking for overflow
+	// If attempt >= 63, shifting would overflow (2^63 > MaxInt64)
+	if attempt >= 63 {
+		return maxDelay
+	}
+
+	multiplier := int64(1) << attempt // 2^attempt
+
+	// Check if baseDelay * multiplier would overflow
+	if baseDelay > maxDelay/time.Duration(multiplier) {
+		return maxDelay
+	}
+
+	delay := baseDelay * time.Duration(multiplier)
 
 	// Add jitter: random value between 0% and 10% of the delay
 	jitter := rand.Float64() * 0.1 // 0% to 10% jitter
 	jitteredDelay := time.Duration(float64(delay) * (1.0 + jitter))
+
+	// Check for overflow after jitter (float64 conversion could overflow)
+	if jitteredDelay < 0 || jitteredDelay > maxDelay {
+		return maxDelay
+	}
+
+	// Apply max cap again after jitter
+	if jitteredDelay > maxDelay {
+		return maxDelay
+	}
 
 	return jitteredDelay
 }
