@@ -69,8 +69,10 @@ func (m ManagementOptions) invokeQueryWithRetries(cli cli.Provider, invokeQuery 
 			return fmt.Errorf("max timeout reached after %d retries: %w", attempt, err)
 		}
 
-		cli.Logger().Warn("transient kusto error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
-		time.Sleep(backoffDelay)
+		if attempt < m.MaxRetries {
+			cli.Logger().Warn("transient kusto error, will retry", "error", err, "attempt", attempt+1, "backoff", backoffDelay)
+			time.Sleep(backoffDelay)
+		}
 	}
 
 	return fmt.Errorf("exhausted max retries (%d): %w", m.MaxRetries, err)
