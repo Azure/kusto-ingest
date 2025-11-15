@@ -58,3 +58,30 @@ func Test_ManagementOptions_Run_CreateClientError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "create Kusto query client")
 }
+
+func Test_ManagementOptions_Run_MgmtError(t *testing.T) {
+	cli := testingcli.New()
+
+	q := testingkusto.NewQueryClient(func(qc *testingkusto.QueryClient) {
+		qc.MgmtFn = func(_ context.Context, db string, stmt kusto.Statement, _ ...kusto.QueryOption) (*kusto.RowIterator, error) {
+			// Return a non-retryable Kusto error
+			return nil, errors.New("mgmt command failed")
+		}
+	})
+
+	opts := ManagementOptions{
+		Source:      []byte(".show tables"),
+		Auth:        newTestAuth(),
+		KustoTarget: newTestKustoTarget(),
+		ingestorBuildSettings: ingestorBuildSettings{
+			CreateQueryClient: func(target KustoTargetOptions, auth AuthOptions) (ingest.QueryClient, error) {
+				return q, nil
+			},
+		},
+	}
+
+	err := opts.Run(cli)
+	assert.Error(t, err)
+	// The error will be wrapped by invokeWithRetries as "non-retryable kusto error"
+	assert.Contains(t, err.Error(), "non-retryable kusto error")
+}
