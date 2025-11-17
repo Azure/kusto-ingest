@@ -83,5 +83,5 @@ func Test_ManagementOptions_Run_MgmtError(t *testing.T) {
 	err := opts.Run(cli)
 	assert.Error(t, err)
 	// The error will be wrapped by invokeWithRetries as "non-retryable error"
-	assert.Contains(t, err.Error(), "non-retryable  error")
+	assert.Contains(t, err.Error(), "non-retryable kusto error")
 }
