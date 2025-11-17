@@ -65,7 +65,7 @@ func TestCalculateDelay(t *testing.T) {
 			},
 		},
 		{
-			name:    "attempt 4 grows exponentially without cap",
+			name:    "attempt 4 grows exponentially",
 			attempt: 4,
 			expected: struct {
 				min time.Duration
@@ -302,7 +302,7 @@ func TestInvokeWithRetries(t *testing.T) {
 		err := invokeWithRetries(invoke, 2, 30, cli.Logger())
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "exhausted max retries (2)")
-		assert.Equal(t, 3, callCount, "should attempt MaxRetries+1 times (0, 1, 2)")
+		assert.Equal(t, 3, callCount, "should attempt MaxRetries+1 times (initial attempt + 2 retries; attempts 0, 1, 2)")
 	})
 
 	t.Run("respects max timeout", func(t *testing.T) {

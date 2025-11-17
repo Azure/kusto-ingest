@@ -30,6 +30,9 @@ func (m ManagementOptions) Run(cli cli.Provider) error {
 
 	stmt := kql.New("").AddUnsafe(string(m.Source))
 	invokeQuery := func() error {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		_, err := queryer.Mgmt(ctx, m.KustoTarget.Database, stmt)
 		return err
 	}

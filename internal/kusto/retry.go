@@ -40,6 +40,11 @@ func invokeWithRetries(
 	deadline := time.Now().Add(maxTimeoutDuration)
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
+		// Check if we've exceeded the deadline before attempting
+		if attempt > 0 && time.Now().After(deadline) {
+			return fmt.Errorf("max timeout reached after %d retries: %w", attempt-1, err)
+		}
+
 		err = invoke()
 		if err == nil {
 			return nil
@@ -70,7 +75,7 @@ func invokeWithRetries(
 /*
 calculateDelay computes the next retry delay duration.
 Uses exponential backoff with jitter to prevent thundering herd issues.
-Formula: min(maxRetryDelay, baseDelay * (2^attempt)) * (1 + jitter)
+Formula: baseDelay * (2^attempt) * (1 + jitter)
 Where jitter is a random value between 0 and 0.1 (10% jitter)
 */
 func calculateDelay(attempt int, baseDelay time.Duration) time.Duration {

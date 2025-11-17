@@ -65,6 +65,9 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 	defer cancel()
 
 	invokeIngest := func() error {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		_, err := ingestor.FromFile(ctx, f.SourceFile, fileOptions...)
 		return err
 	}
@@ -78,7 +81,7 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 		cli.Logger(),
 	)
 	if err != nil {
-		cli.Logger().Error("failed to ingest file", "error", err)
+		cli.Logger().Error("failed to ingest file", "error", err, "file", f.SourceFile)
 		return err
 	}
 
