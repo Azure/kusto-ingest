@@ -39,7 +39,23 @@ Where `./testdata/commands.kql` contains Kusto management commands, e.g.:
 - `--auth-azcli` or other authentication options (see below)
 - `--kusto-endpoint` (required)
 - `--kusto-database` (required)
+- `--max-retries=3` (optional)
+- `--max-timeout=60` (optional)
 
+#### Retry Options
+
+Both file ingestion and management commands support automatic retry with exponential backoff for transient errors. 
+Default values can be overridden by specifying the arguments as below:
+
+```
+$ kusto-ingest file ./testdata/logs.multijson \
+    --max-retries=5 \
+    --max-timeout=120 \
+    # ... other options
+```
+
+- `--max-retries=3` - Maximum number of retry attempts (default: 3)
+- `--max-timeout=60` - Maximum total time in seconds for all retries (default: 60)
 
 ### Authentication
 

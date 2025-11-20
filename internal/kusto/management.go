@@ -15,6 +15,8 @@ func (m ManagementOptions) Run(cli cli.Provider) error {
 		"target.database", m.KustoTarget.Database,
 		"auth.tenant", m.Auth.TenantID,
 		"auth.clientID", m.Auth.ClientID,
+		"maxRetries", m.MaxRetries,
+		"maxTimeout", m.MaxTimeout,
 	)
 
 	queryer, err := m.createQueryClient(m.KustoTarget, m.Auth)
@@ -26,14 +28,29 @@ func (m ManagementOptions) Run(cli cli.Provider) error {
 	ctx, cancel := cli.Context()
 	defer cancel()
 
-	cli.Logger().Info("executing management commands")
-	start := time.Now()
 	stmt := kql.New("").AddUnsafe(string(m.Source))
-	_, err = queryer.Mgmt(ctx, m.KustoTarget.Database, stmt)
-	if err != nil {
-		return fmt.Errorf("execute management commands: %w", err)
+	invokeQuery := func() error {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		_, err := queryer.Mgmt(ctx, m.KustoTarget.Database, stmt)
+		return err
 	}
-	cli.Logger().Info("management commands executed", "duration", time.Since(start))
 
+	cli.Logger().Info("executing management command")
+
+	start := time.Now()
+	err = invokeWithRetries(
+		invokeQuery,
+		m.MaxRetries,
+		m.MaxTimeout,
+		cli.Logger(),
+	)
+	if err != nil {
+		cli.Logger().Error("failed to execute management command", "error", err)
+		return err
+	}
+
+	cli.Logger().Info("management command executed successfully", "duration", time.Since(start))
 	return nil
 }

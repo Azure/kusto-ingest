@@ -25,11 +25,11 @@ func writeToTestFile(t testing.TB, fileName string, content []byte) string {
 }
 
 func Test_FileIngestOptions_FileOptions(t *testing.T) {
-	t.Run("with mapping", func (t *testing.T)  {
+	t.Run("with mapping", func(t *testing.T) {
 		mappingFile := writeToTestFile(t, "test-mapping.json", []byte(`[]`))
 
 		options := FileIngestOptions{
-			Format: "csv",
+			Format:       "csv",
 			MappingsFile: mappingFile,
 		}
 
@@ -40,7 +40,7 @@ func Test_FileIngestOptions_FileOptions(t *testing.T) {
 
 	t.Run("with invalid mapping file", func(t *testing.T) {
 		options := FileIngestOptions{
-			Format: "csv",
+			Format:       "csv",
 			MappingsFile: "some-random-file",
 		}
 
@@ -48,7 +48,7 @@ func Test_FileIngestOptions_FileOptions(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("without mapping", func (t *testing.T)  {
+	t.Run("without mapping", func(t *testing.T) {
 		options := FileIngestOptions{
 			Format: "csv",
 		}
@@ -61,7 +61,7 @@ func Test_FileIngestOptions_FileOptions(t *testing.T) {
 
 func Test_FileIngestOptions_Run_IngestFile_NoMapping(t *testing.T) {
 	sourceFile := writeToTestFile(t, "logs.json", []byte("{}"))
-	
+
 	cli := testingcli.New()
 
 	ingestor := testingkusto.New(func(ing *testingkusto.Ingestor) {
@@ -74,9 +74,9 @@ func Test_FileIngestOptions_Run_IngestFile_NoMapping(t *testing.T) {
 	})
 
 	opts := FileIngestOptions{
-		SourceFile: sourceFile,
-		Format: "multijson",
-		Auth: newTestAuth(),
+		SourceFile:  sourceFile,
+		Format:      "multijson",
+		Auth:        newTestAuth(),
 		KustoTarget: newTestKustoTarget(),
 
 		ingestorBuildSettings: ingestorBuildSettings{
@@ -93,7 +93,7 @@ func Test_FileIngestOptions_Run_IngestFile_NoMapping(t *testing.T) {
 func Test_FileIngestOptions_Run_IngestFile_WithMapping(t *testing.T) {
 	sourceFile := writeToTestFile(t, "logs.json", []byte("{}"))
 	sourceFileMapping := writeToTestFile(t, "logs-mapping.json", []byte("[]"))
-	
+
 	cli := testingcli.New()
 
 	ingestor := testingkusto.New(func(ing *testingkusto.Ingestor) {
@@ -106,11 +106,11 @@ func Test_FileIngestOptions_Run_IngestFile_WithMapping(t *testing.T) {
 	})
 
 	opts := FileIngestOptions{
-		SourceFile: sourceFile,
-		Format: "multijson",
+		SourceFile:   sourceFile,
+		Format:       "multijson",
 		MappingsFile: sourceFileMapping,
-		Auth: newTestAuth(),
-		KustoTarget: newTestKustoTarget(),
+		Auth:         newTestAuth(),
+		KustoTarget:  newTestKustoTarget(),
 
 		ingestorBuildSettings: ingestorBuildSettings{
 			CreateIngestor: func(target KustoTargetOptions, auth AuthOptions) (ingest.Ingestor, error) {
@@ -121,4 +121,25 @@ func Test_FileIngestOptions_Run_IngestFile_WithMapping(t *testing.T) {
 
 	err := opts.Run(cli)
 	assert.NoError(t, err)
+}
+
+func Test_FileIngestOptions_Run_CreateIngestorError(t *testing.T) {
+	sourceFile := writeToTestFile(t, "logs.json", []byte("{}"))
+	cli := testingcli.New()
+
+	opts := FileIngestOptions{
+		SourceFile:  sourceFile,
+		Format:      "multijson",
+		Auth:        newTestAuth(),
+		KustoTarget: newTestKustoTarget(),
+		ingestorBuildSettings: ingestorBuildSettings{
+			CreateIngestor: func(target KustoTargetOptions, auth AuthOptions) (ingest.Ingestor, error) {
+				return nil, assert.AnError
+			},
+		},
+	}
+
+	err := opts.Run(cli)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "create Kusto ingestor")
 }

@@ -64,7 +64,8 @@ func Test_ManagementOptions_Run_MgmtError(t *testing.T) {
 
 	q := testingkusto.NewQueryClient(func(qc *testingkusto.QueryClient) {
 		qc.MgmtFn = func(_ context.Context, db string, stmt kusto.Statement, _ ...kusto.QueryOption) (*kusto.RowIterator, error) {
-			return nil, errors.New("mgmt failed")
+			// Return a non-retryable error
+			return nil, errors.New("mgmt command failed")
 		}
 	})
 
@@ -81,5 +82,6 @@ func Test_ManagementOptions_Run_MgmtError(t *testing.T) {
 
 	err := opts.Run(cli)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "execute management commands")
+	// The error will be wrapped by invokeWithRetries as "non-retryable error"
+	assert.Contains(t, err.Error(), "non-retryable kusto error")
 }

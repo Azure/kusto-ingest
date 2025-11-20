@@ -46,6 +46,8 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 		"target.table", f.KustoTarget.Table,
 		"auth.tenant", f.Auth.TenantID,
 		"auth.clientID", f.Auth.ClientID,
+		"maxRetries", f.MaxRetries,
+		"maxTimeout", f.MaxTimeout,
 	)
 
 	fileOptions, err := f.FileOptions()
@@ -62,17 +64,27 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 	ctx, cancel := cli.Context()
 	defer cancel()
 
+	invokeIngest := func() error {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		_, err := ingestor.FromFile(ctx, f.SourceFile, fileOptions...)
+		return err
+	}
+
 	cli.Logger().Info("file ingestion started")
 	start := time.Now()
-	_, err = ingestor.FromFile(
-		ctx,
-		f.SourceFile,
-		fileOptions...,
+	err = invokeWithRetries(
+		invokeIngest,
+		f.MaxRetries,
+		f.MaxTimeout,
+		cli.Logger(),
 	)
 	if err != nil {
-		return fmt.Errorf("ingest from file %q: %w", f.SourceFile, err)
+		cli.Logger().Error("failed to ingest file", "error", err, "file", f.SourceFile)
+		return err
 	}
-	cli.Logger().Info("file ingestion completed", "duration", time.Since(start))
 
+	cli.Logger().Info("file ingestion completed successfully", "duration", time.Since(start))
 	return nil
 }
