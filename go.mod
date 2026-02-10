@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/Azure/azure-kusto-go v0.16.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
-	github.com/alecthomas/kong v1.13.0
+	github.com/alecthomas/kong v1.14.0
 	github.com/charmbracelet/log v0.4.2
 	github.com/stretchr/testify v1.11.1
 )
