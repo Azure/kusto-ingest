@@ -55,6 +55,11 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 		return err
 	}
 
+	// Propagate logger for token diagnostic logging (cold start / IMDS detection)
+	if f.ingestorBuildSettings.Logger == nil {
+		f.ingestorBuildSettings.Logger = cli.Logger()
+	}
+
 	ingestor, err := f.createIngestor(f.KustoTarget, f.Auth)
 	if err != nil {
 		return fmt.Errorf("create Kusto ingestor: %w", err)

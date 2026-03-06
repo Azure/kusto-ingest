@@ -19,6 +19,11 @@ func (m ManagementOptions) Run(cli cli.Provider) error {
 		"maxTimeout", m.MaxTimeout,
 	)
 
+	// Propagate logger for token diagnostic logging (cold start / IMDS detection)
+	if m.ingestorBuildSettings.Logger == nil {
+		m.ingestorBuildSettings.Logger = cli.Logger()
+	}
+
 	queryer, err := m.createQueryClient(m.KustoTarget, m.Auth)
 	if err != nil {
 		return fmt.Errorf("create Kusto query client: %w", err)
