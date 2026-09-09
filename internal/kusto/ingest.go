@@ -3,14 +3,16 @@ package kusto
 import (
 	"github.com/Azure/azure-kusto-go/kusto"
 	"github.com/Azure/azure-kusto-go/kusto/ingest"
+	"github.com/charmbracelet/log"
 )
 
 func createKustoClient(
 	target KustoTargetOptions,
 	auth AuthOptions,
+	logger *log.Logger,
 ) (*kusto.Client, error) {
 	builder := kusto.NewConnectionStringBuilder(target.Endpoint)
-	if err := auth.PrepareKustoConnectionStringBuilder(builder); err != nil {
+	if err := auth.PrepareKustoConnectionStringBuilder(builder, logger); err != nil {
 		return nil, err
 	}
 
@@ -18,6 +20,9 @@ func createKustoClient(
 }
 
 type ingestorBuildSettings struct {
+	// Logger - optional logger for diagnostic token logging in default client creation.
+	Logger *log.Logger
+
 	// CreateQueryClient - optional callback for creating the ingest query client.
 	// Defaults to creating a client via kusto.New.
 	CreateQueryClient func(target KustoTargetOptions, auth AuthOptions) (ingest.QueryClient, error)
@@ -35,7 +40,7 @@ func (s ingestorBuildSettings) createQueryClient(
 		return s.CreateQueryClient(target, auth)
 	}
 
-	client, err := createKustoClient(target, auth)
+	client, err := createKustoClient(target, auth, s.Logger)
 	if err != nil {
 		return nil, err
 	}

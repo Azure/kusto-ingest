@@ -55,6 +55,11 @@ func (f FileIngestOptions) Run(cli cli.Provider) error {
 		return err
 	}
 
+	// Propagate logger for token diagnostic logging
+	if f.Logger == nil {
+		f.Logger = cli.Logger()
+	}
+
 	ingestor, err := f.createIngestor(f.KustoTarget, f.Auth)
 	if err != nil {
 		return fmt.Errorf("create Kusto ingestor: %w", err)
